@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-4.3.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context-4.3.xsd
+        http://www.springframework.org/schema/aop
+        http://www.springframework.org/schema/aop/spring-aop-4.3.xsd
+        http://www.springframework.org/schema/tx
+        http://www.springframework.org/schema/tx/spring-tx-4.3.xsd">
+
+    <!--classpath*:db.properties-->
+    <!--1 引入属性文件，在配置中占位使用 -->
+    <context:property-placeholder location="classpath:/properties/db.properties,
+    classpath:/properties/redis.properties"/>
+
+    <!--2 配置C3P0数据源 -->
+    <bean id="datasource" class="com.mchange.v2.c3p0.ComboPooledDataSource"
+          destroy-method="close">
+        <!--驱动类名 -->
+        <property name="driverClass" value="${jdbc.driver}"/>
+        <!-- url -->
+        <property name="jdbcUrl" value="${jdbc.url}"/>
+        <!-- 用户名 -->
+        <property name="user" value="${jdbc.username}"/>
+        <!-- 密码 -->
+        <property name="password" value="${jdbc.password}"/>
+        <!-- 当连接池中的连接耗尽的时候c3p0一次同时获取的连接数 -->
+        <!--<property name="acquireIncrement" value="${mysql.acquireIncrement}"></property>-->
+        <!--&lt;!&ndash; 初始连接池大小 &ndash;&gt;-->
+        <!--<property name="initialPoolSize" value="${mysql.initialPoolSize}"></property>-->
+        <!--&lt;!&ndash; 连接池中连接最小个数 &ndash;&gt;-->
+        <!--<property name="minPoolSize" value="${mysql.minPoolSize}"></property>-->
+        <!--&lt;!&ndash; 连接池中连接最大个数 &ndash;&gt;-->
+        <!--<property name="maxPoolSize" value="${mysql.maxPoolSize}"></property>-->
+    </bean>
+
+    <!--3 会话工厂bean sqlSessionFactoryBean  classpath:SqlMapConfig.xml"-->
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <!-- 配置文件路径 -->
+        <property name="configLocation" value="classpath:/mybatis/SqlMapConfig.xml"></property>
+        <!-- 数据源 -->
+        <property name="dataSource" ref="datasource"></property>
+        <!-- sql映射文件路径 -->
+        <!--<property name="mapperLocations" value="classpath*:com/web/mvc/mapper/*Mapper.xml"></property>-->
+    </bean>
+
+    <!--4 自动扫描对象关系映射 -->
+    <bean id="mapperScannerConfigurer" class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <!--指定会话工厂，如果当前上下文中只定义了一个则该属性可省去 -->
+        <property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"/>
+        <!-- 指定要自动扫描接口的基础包，实现接口 -->
+        <property name="basePackage" value="com.web.mvc.mapper"/>
+    </bean>
+
+    <!--5 声明式事务管理 -->
+    <!--定义事物管理器，由spring管理事务 -->
+    <bean id="transactionManager"
+          class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="datasource"/>
+    </bean>
+    <!--支持注解驱动的事务管理，指定事务管理器 -->
+    <tx:annotation-driven transaction-manager="transactionManager" proxy-target-class="true"/>
+    <!-- 定义JdbcTemplate的Bean -->
+    <bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate" p:dataSource-ref="datasource"/>
+    <!--6 容器自动扫描IOC组件 -->
+    <context:component-scan base-package="com.web.mvc"/>
+
+    <!--7 aspectj支持自动代理实现AOP功能 -->
+    <aop:aspectj-autoproxy proxy-target-class="true"></aop:aspectj-autoproxy>
+
+    <!-- 导入redis的配置文件 -->
+    <import resource="classpath:/redis/redisConfig.xml"/>
+
+    <bean id="druidDataSource" class="com.alibaba.druid.pool.DruidDataSource" init-method="init" destroy-method="close">
+        <!-- 基本属性 url、user、password -->
+        <property name="driverClassName" value="${jdbc.driver}"/>
+        <property name="url" value="${jdbc.url}"/>
+        <property name="username" value="${jdbc.username}"/>
+        <property name="password" value="${jdbc.password}"/>
+
+        <!-- 配置监控统计拦截的filters -->
+        <property name="filters" value="stat"/>
+
+        <!-- 配置初始化大小、最小、最大 -->
+        <property name="maxActive" value="20"/>
+        <property name="initialSize" value="1"/>
+        <property name="minIdle" value="1"/>
+
+        <!-- 配置获取连接等待超时的时间 -->
+        <property name="maxWait" value="60000"/>
+
+        <!-- 配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位是毫秒 -->
+        <property name="timeBetweenEvictionRunsMillis" value="60000"/>
+
+        <!-- 配置一个连接在池中最小生存的时间，单位是毫秒 -->
+        <property name="minEvictableIdleTimeMillis" value="300000"/>
+
+        <property name="testWhileIdle" value="true"/>
+        <property name="testOnBorrow" value="false"/>
+        <property name="testOnReturn" value="false"/>
+
+        <!-- 打开PSCache，并且指定每个连接上PSCache的大小 -->
+        <property name="poolPreparedStatements" value="true"/>
+        <property name="maxOpenPreparedStatements" value="20"/>
+    </bean>
+
+    <!--<bean id="hikariDataSource" class="com.zaxxer.hikari.HikariDataSource"-->
+          <!--destroy-method="shutdown">-->
+        <!--<property name="driverClassName" value="${jdbc.driverClassName}"></property>-->
+        <!--<property name="jdbcUrl" value="${jdbc.url}"></property>-->
+        <!--<property name="username" value="${jdbc.username}"></property>-->
+        <!--<property name="password" value="${jdbc.password}"></property>-->
+        <!--<property name="readOnly" value="false"/>-->
+        <!--<property name="connectionTimeout" value="30000"/>-->
+        <!--<property name="idleTimeout" value="600000"/>-->
+        <!--<property name="maxLifetime" value="1800000"/>-->
+        <!--<property name="maximumPoolSize" value="15"/>-->
+    <!--</bean>-->
+</beans>
