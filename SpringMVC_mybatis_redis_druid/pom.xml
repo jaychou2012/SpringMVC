@@ -19,7 +19,7 @@
         <thymeleaf.version>3.0.2.RELEASE</thymeleaf.version>
         <mybatis.version>3.2.8</mybatis.version>
         <mybatisSpring.version>1.3.1</mybatisSpring.version>
-        <mysql.version>5.1.40</mysql.version>
+        <mysql.version>8.0.16</mysql.version>
         <dhcp.version>1.2.2</dhcp.version>
         <aop.version>1.8.9</aop.version>
         <c3p0.version>0.9.1.2</c3p0.version>
